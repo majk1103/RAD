@@ -23,6 +23,7 @@
   --good: #e6f3ea;
   --good-ink: #0f5a35;
   --bad-ink: #a12a2a;
+  --red: #d0242b;
   --font-display: "Barlow Semi Condensed", "Arial Narrow", sans-serif;
   --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
@@ -41,6 +42,7 @@
     --good: #173226;
     --good-ink: #7fe0ac;
     --bad-ink: #ff8f8f;
+    --red: #ff6b6b;
     color-scheme: dark;
   }
 }
@@ -57,6 +59,7 @@
   --good: #173226;
   --good-ink: #7fe0ac;
   --bad-ink: #ff8f8f;
+  --red: #ff6b6b;
   color-scheme: dark;
 }
 
@@ -170,9 +173,10 @@ table { border-collapse: collapse; width: 100%; }
 .adv h2 { margin: 0; }
 .adv .sub { color: var(--muted); margin: 4px 0 0; }
 .advgrid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; }
-.advgrid li { display: grid; grid-template-columns: 32px 1fr; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.advgrid li { align-content: start; display: grid; grid-template-columns: 32px 1fr; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .advgrid .n { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; color: var(--accent); grid-row: span 2; padding-top: 2px; }
 .advgrid b { font-weight: 600; }
+.advgrid li.hl .n, .advgrid li.hl b { color: var(--red); }
 .advgrid span.d { color: var(--muted); font-size: 14px; }
 .figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .fig { margin: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -252,15 +256,15 @@ table { border-collapse: collapse; width: 100%; }
       <p class="sub">Nový motor, vyšší účinnost, větší kontrola a bezpečnější obsluha.</p>
     </div>
     <ul class="advgrid">
-<li><span class="n" aria-hidden="true">1</span><b>Nový motor pro utahování šroubů</b><span class="d">Motor navržený přímo pro bolting aplikace.</span></li>
-<li><span class="n" aria-hidden="true">2</span><b>Vyšší účinnost</b><span class="d">O 20 % více utažených šroubů na stejnou baterii.</span></li>
-<li><span class="n" aria-hidden="true">3</span><b>Aktivní chlazení elektroniky</b><span class="d">Elektronika v rukojeti je chlazena aktivně.</span></li>
-<li><span class="n" aria-hidden="true">4</span><b>Moment + úhel</b><span class="d">Utahování s kontrolou momentu i úhlu natočení.</span></li>
-<li><span class="n" aria-hidden="true">5</span><b>Start od 10 % rozsahu</b><span class="d">Rozsah momentu začíná přibližně na 10 % maximální hodnoty.</span></li>
-<li><span class="n" aria-hidden="true">6</span><b>Nastavitelný úhel zpětného chodu</b><span class="d">Úhel zpětného chodu lze nastavit pro uvolnění reakčního ramene.</span></li>
-<li><span class="n" aria-hidden="true">7</span><b>Ochrana proti přiskřípnutí prstů</b><span class="d">Integrovaná ochrana prstů obsluhy.</span></li>
-<li><span class="n" aria-hidden="true">8</span><b>Dvouruční ovládání</b><span class="d">Integrovaný režim obsluhy oběma rukama.</span></li>
-<li><span class="n" aria-hidden="true">9</span><b>Stálé otáčky po celý cyklus</b><span class="d">Otáčky zůstávají stejné během celého cyklu, bez poklesu vlivem odporu.</span></li>
+<li class="hl"><span class="n" aria-hidden="true">1</span><b>Stálé otáčky po celý cyklus</b><span class="d">Otáčky zůstávají stejné během celého cyklu, bez poklesu vlivem odporu.</span></li>
+<li><span class="n" aria-hidden="true">2</span><b>Nový motor pro utahování šroubů</b><span class="d">Motor navržený přímo pro bolting aplikace.</span></li>
+<li><span class="n" aria-hidden="true">3</span><b>Vyšší účinnost</b><span class="d">O 20 % více utažených šroubů na stejnou baterii.</span></li>
+<li><span class="n" aria-hidden="true">4</span><b>Aktivní chlazení elektroniky</b><span class="d">Elektronika v rukojeti je chlazena aktivně.</span></li>
+<li><span class="n" aria-hidden="true">5</span><b>Moment + úhel</b><span class="d">Utahování s kontrolou momentu i úhlu natočení.</span></li>
+<li><span class="n" aria-hidden="true">6</span><b>Start od 10 % rozsahu</b><span class="d">Rozsah momentu začíná přibližně na 10 % maximální hodnoty.</span></li>
+<li><span class="n" aria-hidden="true">7</span><b>Nastavitelný úhel zpětného chodu</b><span class="d">Úhel zpětného chodu lze nastavit pro uvolnění reakčního ramene.</span></li>
+<li><span class="n" aria-hidden="true">8</span><b>Ochrana proti přiskřípnutí prstů</b><span class="d">Integrovaná ochrana prstů obsluhy.</span></li>
+<li><span class="n" aria-hidden="true">9</span><b>Dvouruční ovládání</b><span class="d">Integrovaný režim obsluhy oběma rukama.</span></li>
     </ul>
     <div class="figs">
       <figure class="fig">
