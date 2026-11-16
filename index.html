@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Srovnávač B-RAD a Plarad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: ovládací lišta, tři sloupce výběru, graf rozsahu momentu, srovnávací tabulka, přehled všech modelů */
+  --bg: #f2f4f7;
+  --surface: #ffffff;
+  --ink: #13202f;
+  --muted: #566476;
+  --line: #d8dee6;
+  --accent: #0b5cad;
+  --s1: #1f5fbf;
+  --s2: #cc5d14;
+  --s3: #147a5f;
+  --good: #e6f3ea;
+  --good-ink: #0f5a35;
+  --bad-ink: #a12a2a;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141b;
+    --surface: #161e28;
+    --ink: #e7ecf2;
+    --muted: #94a1b1;
+    --line: #2a3542;
+    --accent: #6aa8f5;
+    --s1: #6ca4ff;
+    --s2: #ff9a58;
+    --s3: #45c9a2;
+    --good: #173226;
+    --good-ink: #7fe0ac;
+    --bad-ink: #ff8f8f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141b;
+  --surface: #161e28;
+  --ink: #e7ecf2;
+  --muted: #94a1b1;
+  --line: #2a3542;
+  --accent: #6aa8f5;
+  --s1: #6ca4ff;
+  --s2: #ff9a58;
+  --s3: #45c9a2;
+  --good: #173226;
+  --good-ink: #7fe0ac;
+  --bad-ink: #ff8f8f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 56px; display: flex; flex-direction: column; gap: 20px; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; letter-spacing: .01em; text-wrap: balance; margin: 0; }
+h1 { font-size: 34px; line-height: 1.05; }
+h2 { font-size: 22px; }
+.lede { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+
+/* ovládání */
+.toolbar { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-end; padding: 14px 16px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > label, .field > .lbl { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-weight: 500; padding: 8px 16px; background: transparent; color: var(--ink); border: 0; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+input[type="number"] { font: inherit; width: 150px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.hint { font-size: 13px; color: var(--muted); align-self: center; max-width: 36ch; }
+.reset { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); cursor: pointer; margin-left: auto; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:hover:not([aria-pressed="true"]) { background-color: color-mix(in srgb, var(--ink) 6%, transparent); }
+
+/* sloty */
+.slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.slot { min-width: 0; }
+.slot { padding: 12px 14px 14px; border-top: 4px solid var(--c); display: flex; flex-direction: column; gap: 8px; }
+.slot:nth-child(1) { --c: var(--s1); }
+.slot:nth-child(2) { --c: var(--s2); }
+.slot:nth-child(3) { --c: var(--s3); }
+.slot .top { display: flex; align-items: center; gap: 8px; }
+.badge { width: 26px; height: 26px; border-radius: 50%; background: var(--c); color: var(--surface); display: inline-grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 16px; flex: none; }
+.slot select { flex: 1; min-width: 0; font: inherit; padding: 8px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.slot .meta { overflow-wrap: anywhere; font-size: 13px; color: var(--muted); min-height: 38px; }
+.slot .meta strong { color: var(--ink); font-weight: 600; }
+
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--ink); white-space: nowrap; }
+.pill.x { background: var(--ink); color: var(--surface); }
+.pill.sel { background: transparent; color: var(--ink); }
+.pill.pl { background: transparent; color: var(--accent); border-color: var(--accent); }
+.muted { color: var(--muted); }
+
+/* graf */
+.chart { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.chart-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.chart-head .note { font-size: 13px; color: var(--muted); }
+.crow { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: center; }
+.clabel .badge { flex: none; }
+.clabel { font-size: 13px; line-height: 1.25; display: flex; gap: 8px; align-items: center; min-width: 0; }
+.clabel b { font-weight: 600; display: block; }
+.clabel div span { color: var(--muted); display: block; }
+.track { position: relative; height: 24px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.bar { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; background: var(--c); min-width: 3px; }
+.reqline { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px dashed var(--ink); z-index: 2; }
+.axis { position: relative; height: 18px; margin-left: 182px; }
+.axis span { position: absolute; transform: translateX(-50%); font-size: 12px; color: var(--muted); top: 0; }
+.c1 { --c: var(--s1); } .c2 { --c: var(--s2); } .c3 { --c: var(--s3); }
+.legend { font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 0; height: 12px; border-left: 2px dashed var(--ink); vertical-align: -2px; margin-right: 5px; }
+
+/* tabulka srovnání */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+.cmp { min-width: 640px; }
+.cmp th, .cmp td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.cmp thead th { border-bottom: 0; padding-top: 14px; border-top: 4px solid var(--c); }
+.cmp thead th:first-child { border-top: 0; }
+.cmp thead th:nth-child(2) { --c: var(--s1); }
+.cmp thead th:nth-child(3) { --c: var(--s2); }
+.cmp thead th:nth-child(4) { --c: var(--s3); }
+.cmp tbody th { font-weight: 500; color: var(--muted); width: 190px; font-size: 14px; }
+.cmp tbody tr.group th { font-family: var(--font-display); font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink); background: color-mix(in srgb, var(--ink) 5%, transparent); padding-top: 7px; padding-bottom: 7px; }
+.cmp tbody tr.group td { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.cmp .mname { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.1; display: block; }
+.cmp td.best { background: var(--good); color: var(--good-ink); font-weight: 600; }
+.cmp td.empty { color: var(--muted); }
+.cmp .yes { color: var(--good-ink); font-weight: 600; }
+.cmp .no { color: var(--bad-ink); font-weight: 600; }
+.cmp td .sub { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+.tfoot { padding: 10px 14px; font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.swatch { width: 14px; height: 14px; background: var(--good); border: 1px solid var(--good-ink); border-radius: 3px; display: inline-block; }
+
+/* přehled modelů */
+.listhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 16px 10px; }
+.list { min-width: 700px; }
+.list th, .list td { padding: 7px 12px; border-top: 1px solid var(--line); text-align: left; font-size: 14px; }
+.list thead th { border-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.list tr.off td { opacity: .4; }
+.list td.num, .list th.num { text-align: right; }
+.list .picks { white-space: nowrap; text-align: right; }
+.pick { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--c); background: transparent; color: var(--c); font: 600 13px var(--font-body); cursor: pointer; margin-left: 4px; padding: 0; }
+.pick[aria-pressed="true"] { background: var(--c); color: var(--surface); }
+.pick:nth-child(1) { --c: var(--s1); } .pick:nth-child(2) { --c: var(--s2); } .pick:nth-child(3) { --c: var(--s3); }
+.list td.mn { font-weight: 600; }
+
+.notes { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 90ch; }
+.notes a { color: var(--accent); }
+
+@media (max-width: 760px) {
+  h1 { font-size: 28px; }
+  .slots { grid-template-columns: minmax(0, 1fr); }
+  .crow { grid-template-columns: 1fr; gap: 4px; }
+  .axis { margin-left: 0; }
+  .reset { margin-left: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar { transition: left .25s ease, width .25s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Srovnávač akumulátorových momentových klíčů B-RAD a Plarad</h1>
+    <p class="lede">Vyberte tři nástroje z řad B-RAD Select a B-RAD X od RAD Torque Systems nebo Plarad DA3 a porovnejte je vedle sebe. Zadejte požadovaný utahovací moment a uvidíte, které nástroje ho pokryjí.</p>
+  </header>
+
+  <section class="panel toolbar" aria-label="Nastavení">
+    <div class="field">
+      <span class="lbl" id="unit-lbl">Jednotky</span>
+      <div class="seg" role="group" aria-labelledby="unit-lbl">
+        <button type="button" id="u-nm" data-unit="nm" aria-pressed="true">Nm · kg · mm</button>
+        <button type="button" id="u-ft" data-unit="ft" aria-pressed="false">ft-lb · lbs · in</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="req">Požadovaný moment <span id="req-unit">(Nm)</span></label>
+      <input type="number" id="req" min="0" step="10" inputmode="numeric" placeholder="např. 1200">
+    </div>
+    <div class="hint" id="req-hint">Volitelné. Označí nástroje, jejichž rozsah zadaný moment pokrývá.</div>
+    <button type="button" class="reset" id="reset">Obnovit výchozí výběr</button>
+  </section>
+
+  <section class="slots" id="slots" aria-label="Výběr nástrojů"></section>
+
+  <section class="panel chart" aria-labelledby="chart-h">
+    <div class="chart-head">
+      <h2 id="chart-h">Rozsah utahovacího momentu</h2>
+      <span class="note" id="chart-note">Logaritmická osa</span>
+    </div>
+    <div id="chart"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="cmp-h">
+    <div class="listhead"><h2 id="cmp-h">Srovnání parametrů</h2></div>
+    <div class="tablewrap"><table class="cmp" id="cmp"></table></div>
+    <div class="tfoot"><span class="swatch"></span><span>Zvýrazněná buňka je nejlepší hodnota z vybraných nástrojů: nejvyšší maximální moment, nejnižší minimální moment, nejvyšší otáčky, nejnižší hmotnost.</span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="all-h">
+    <div class="listhead">
+      <h2 id="all-h">Všechny modely</h2>
+      <div class="seg" role="group" aria-label="Filtr řady">
+        <button type="button" data-fam="all" aria-pressed="true">Vše</button>
+        <button type="button" data-fam="select" aria-pressed="false">B-RAD Select</button>
+        <button type="button" data-fam="x" aria-pressed="false">B-RAD X</button>
+        <button type="button" data-fam="plarad" aria-pressed="false">Plarad DA3</button>
+      </div>
+    </div>
+    <div class="tablewrap"><table class="list" id="list"></table></div>
+    <div class="tfoot"><span id="list-note">Kliknutím na číslo 1, 2 nebo 3 vložíte model do příslušného sloupce srovnání.</span></div>
+  </section>
+
+  <section class="notes">
+    <div><strong>Poznámky k datům.</strong> Hodnoty jsou převzaty z katalogových listů RAD Torque Systems (B-RAD Select Web 2025, B-RAD Select Product Spread 2026, B-RAD X Product Spread 2026) a z informace o nových modelech B-RAD X 700/1400/2000-M. Hodnoty B-RAD Select byly zkontrolovány proti přehledu Product overview (výrobní čísla 30213 až 28272). Hodnoty B-RAD X 700 až 15K byly zkontrolovány proti přehledu Product overview (32577 až 30661), rozměry a otáčky se u několika modelů oproti katalogu RAD 2026 mírně lišily a použity jsou hodnoty z přehledu; imperiální rozměry těchto modelů jsou přepočet z mm. Novější katalog RAD z roku 2026 uvádí u několika modelů mírně jiné hodnoty (otáčky 21,6 / 10,6 / 5,6, minimum 300 Nm u 1400-M), v přehledu jsou použity hodnoty z kontrolní tabulky.</div>
+    <div>Plarad DA3power: hodnoty jsou z datasheetu dodaného uživatelem. Datasheet neuvádí přesnost, objednací čísla, ovládání ani baterii (řádky jsou označeny „neuvedeno“), opakovatelnost je ≤ 4 % podle aplikace a hmotnost je bez reakčního ramene. U DA3power-48 je v datasheetu 7,8 kg a 15,0 lbs, což si neodpovídá, proto je v imperiální soustavě použito 17,2 lbs (přepočet z 7,8 kg). Modely B-RAD Select 275 (čtyřhran ½″ a ¾″) mají v tabulce jen metrické údaje, hodnoty v ft-lb, lbs a in jsou přepočtené. B-RAD X 15K-M (11K) je dostupný i s čtyřhranem 2,5″. Řada B-RAD Select Offset (úhlová převodovka) není v přehledu zahrnuta.</div>
+    <div>Zdroje: Plarad DA3 datasheet (od uživatele) · <a href="https://www.radtorque.com/wp-content/uploads/2025/05/B-RAD-Select-Web.pdf" target="_blank" rel="noopener">B-RAD Select (PDF)</a> · <a href="https://www.radtorque.com/wp-content/uploads/2026/08/B-RAD-X-Product-Spread.pdf" target="_blank" rel="noopener">B-RAD X (PDF)</a> · <a href="https://www.radtorque.com/ca-east/?p=39783" target="_blank" rel="noopener">Nové modely B-RAD X</a></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  // ---------- Data (katalogy RAD Torque Systems) ----------
+  // nm/ft = název v dané soustavě, pn/pnI = objednací číslo, d = čtyřhran, lo/hi v Nm, loF/hiF v ft-lb
+  var M = [
+    // B-RAD Select (hodnoty ověřeny podle přehledu Product overview, 30213 až 28272)
+    { id:'S275M12', fam:'select', nm:'B-RAD Select 275 ½″', ft:'B-RAD Select 275 ½″', pn:'30213', pnI:'30213', d:0.5,  lo:50, hi:270, loF:37, hiF:199, rpm:47, kg:3.2, lb:7.1, mm:[228,63,67,262], inch:[8.98,2.48,2.64,10.31], conv:true },
+    { id:'S275M34', fam:'select', nm:'B-RAD Select 275 ¾″', ft:'B-RAD Select 275 ¾″', pn:'29594', pnI:'29594', d:0.75, lo:50, hi:270, loF:37, hiF:199, rpm:47, kg:3.2, lb:7.1, mm:[228,63,67,262], inch:[8.98,2.48,2.64,10.31], conv:true },
+    { id:'S700M',   fam:'select', nm:'B-RAD Select 700-M',   ft:'B-RAD Select 500',   pn:'28264', pnI:'28283', d:0.75, lo:170,  hi:700,   loF:130,  hiF:500,  rpm:21.5, kg:3.5,  lb:7.7,  mm:[231,63,67,262],   inch:[9.1,2.5,2.65,10.3] },
+    { id:'S1400M',  fam:'select', nm:'B-RAD Select 1400-M',  ft:'B-RAD Select 1000',  pn:'28266', pnI:'28285', d:0.75, lo:270,  hi:1400,  loF:200,  hiF:1000, rpm:10.5, kg:3.5,  lb:7.8,  mm:[231,63,67,262],   inch:[9.1,2.5,2.65,10.3] },
+    { id:'S14002M', fam:'select', nm:'B-RAD Select 1400-2-M',ft:'B-RAD Select 1000-2',pn:'28267', pnI:'28286', d:0.75, lo:540,  hi:1400,  loF:400,  hiF:1000, rpm:71,   kg:4.3,  lb:9.4,  mm:[279,63,67,262],   inch:[11,2.5,2.65,10.3] },
+    { id:'S2000M',  fam:'select', nm:'B-RAD Select 2000-M',  ft:'B-RAD Select 1500',  pn:'28268', pnI:'28287', d:1,    lo:400,  hi:2000,  loF:300,  hiF:1500, rpm:6,    kg:4.0,  lb:8.9,  mm:[244,69,69,262],   inch:[9.6,2.7,2.7,10.3] },
+    { id:'S20002M', fam:'select', nm:'B-RAD Select 2000-2-M',ft:'B-RAD Select 1500-2',pn:'28269', pnI:'28288', d:1,    lo:400,  hi:2000,  loF:300,  hiF:1500, rpm:19.5, kg:4.9,  lb:10.7, mm:[298,69,69,262],   inch:[11.75,2.7,2.7,10.3] },
+    { id:'S4000M',  fam:'select', nm:'B-RAD Select 4000-M',  ft:'B-RAD Select 3000',  pn:'28270', pnI:'28289', d:1,    lo:800,  hi:4000,  loF:600,  hiF:3000, rpm:3,    kg:6.0,  lb:13.3, mm:[285,81,81,266],   inch:[11.2,3.2,3.2,10.5] },
+    { id:'S40002M', fam:'select', nm:'B-RAD Select 4000-2-M',ft:'B-RAD Select 3000-2',pn:'28271', pnI:'28290', d:1,    lo:800,  hi:4000,  loF:600,  hiF:3000, rpm:20,   kg:6.7,  lb:14.7, mm:[337,81,81,266],   inch:[13.25,3.2,3.2,10.5] },
+    { id:'S7000M',  fam:'select', nm:'B-RAD Select 7000-M',  ft:'B-RAD Select 5000',  pn:'28272', pnI:'28291', d:1.5,  lo:1350, hi:7000,  loF:1000, hiF:5000, rpm:2.1,  kg:8.8,  lb:19.3, mm:[295,95,95,272],   inch:[11.6,3.75,3.75,10.7] },
+    // B-RAD X
+    { id:'X700M',   fam:'x', nm:'B-RAD X 700-M',    ft:'B-RAD X 500',     pn:'32577', pnI:'32576', d:0.75, lo:70,   hi:700,   loF:50,   hiF:500,   rpm:27.6, kg:5,    lb:11.1, mm:[235,63,92,352],  inch:[9.25,2.48,3.62,13.86], acc:'fs' },
+    { id:'X1400M',  fam:'x', nm:'B-RAD X 1400-M',   ft:'B-RAD X 1000',    pn:'32652', pnI:'32651', d:0.75, lo:140,  hi:1400,  loF:100,  hiF:1000,  rpm:14.5, kg:5.6,  lb:12.3, mm:[270,63,92,352],  inch:[10.63,2.48,3.62,13.86], acc:'fs' },
+    { id:'X2000M',  fam:'x', nm:'B-RAD X 2000-M',   ft:'B-RAD X 1500',    pn:'32654', pnI:'32653', d:1,    lo:200,  hi:2000,  loF:150,  hiF:1500,  rpm:9.3,  kg:6,    lb:13.1, mm:[265,69,92,357],  inch:[10.43,2.72,3.62,14.06], acc:'fs' },
+    { id:'X4000M',  fam:'x', nm:'B-RAD X 4000-M',   ft:'B-RAD X 3000',    pn:'30984', pnI:'30983', d:1,    lo:340,  hi:4000,  loF:250,  hiF:3000,  rpm:3.8,  kg:7.8,  lb:17.2,   mm:[298,83,89,349],  inch:[11.73,3.27,3.5,13.74], acc:'t' },
+    { id:'X7000M',  fam:'x', nm:'B-RAD X 7000-M',   ft:'B-RAD X 5000',    pn:'30657', pnI:'30656', d:1.5,  lo:700,  hi:7000,  loF:500,  hiF:5000,  rpm:2.4,  kg:10.5, lb:23,   mm:[318,95,95,362],  inch:[12.52,3.74,3.74,14.25], acc:'t' },
+    { id:'X10KM',   fam:'x', nm:'B-RAD X 10K-M',    ft:'B-RAD X 8000',    pn:'30659', pnI:'30658', d:1.5,  lo:1000, hi:10850, loF:740,  hiF:8000,  rpm:1.7,  kg:13.8, lb:30,   mm:[349,108,108,369], inch:[13.74,4.25,4.25,14.53], acc:'t' },
+    { id:'X15KM',   fam:'x', nm:'B-RAD X 15K-M',    ft:'B-RAD X 11K',     pn:'30661', pnI:'30660', d:1.5,  lo:1500, hi:15000, loF:1100, hiF:11000, rpm:1.2,  kg:19.3, lb:42,   mm:[387,127,127,375], inch:[15.24,5,5,14.76], acc:'t', alt:'k dispozici i čtyřhran 2,5″' },
+    // Plarad DA3power (datasheet dodaný uživatelem): rozměry L1, D1, H1
+    { id:'P05', fam:'plarad', nm:'Plarad DA3power-05', ft:'Plarad DA3power-05', pn:'–', pnI:'–', d:0.75, lo:130, hi:550,  loF:96,  hiF:410,  rpm:71.6, kg:5.3,  lb:11.7, mm:[360,68.5,273], inch:[14.2,2.70,10.7] },
+    { id:'P10', fam:'plarad', nm:'Plarad DA3power-10', ft:'Plarad DA3power-10', pn:'–', pnI:'–', d:0.75, lo:180, hi:1000, loF:133, hiF:740,  rpm:48.0, kg:5.3,  lb:11.7, mm:[360,68.5,273], inch:[14.2,2.70,10.7] },
+    { id:'P20', fam:'plarad', nm:'Plarad DA3power-20', ft:'Plarad DA3power-20', pn:'–', pnI:'–', d:1,    lo:220, hi:2000, loF:162, hiF:1480, rpm:24.6, kg:6.8,  lb:15.0, mm:[400,80,273],   inch:[15.7,3.15,10.7] },
+    { id:'P30', fam:'plarad', nm:'Plarad DA3power-30', ft:'Plarad DA3power-30', pn:'–', pnI:'–', d:1,    lo:330, hi:3000, loF:243, hiF:2210, rpm:20.9, kg:6.8,  lb:15.0, mm:[400,80,273],   inch:[15.7,3.15,10.7] },
+    { id:'P36', fam:'plarad', nm:'Plarad DA3power-36', ft:'Plarad DA3power-36', pn:'–', pnI:'–', d:1,    lo:380, hi:3600, loF:280, hiF:2660, rpm:15.3, kg:6.8,  lb:15.0, mm:[400,80,273],   inch:[15.7,3.15,10.7] },
+    { id:'P48', fam:'plarad', nm:'Plarad DA3power-48', ft:'Plarad DA3power-48', pn:'–', pnI:'–', d:1.5,  lo:500, hi:4800, loF:369, hiF:3540, rpm:12.9, kg:7.8,  lb:17.2, mm:[432,86,273],   inch:[17.0,3.39,10.7] },
+    { id:'P80', fam:'plarad', nm:'Plarad DA3power-80', ft:'Plarad DA3power-80', pn:'–', pnI:'–', d:1.5,  lo:700, hi:8000, loF:516, hiF:5900, rpm:5.7,  kg:12.5, lb:27.6, mm:[516,101,273],  inch:[20.3,3.98,10.7] }
+  ];
+  var BYID = {}; M.forEach(function (m) { BYID[m.id] = m; });
+  var DEFAULT = ['S2000M', 'X2000M', 'P20'];
+
+  // ---------- Stav ----------
+  var st = { slots: DEFAULT.slice(), unit: 'nm', fam: 'all', req: null };
+  try { var u = localStorage.getItem('brad-unit'); if (u === 'nm' || u === 'ft') st.unit = u; } catch (e) {}
+
+  function fromHash() {
+    var h = (location.hash || '').replace('#', '');
+    if (!h) return false;
+    var p = h.split('-');
+    if (p.length !== 3) return false;
+    var ok = false, out = p.map(function (x) { if (BYID[x]) { ok = true; return x; } return null; });
+    if (ok) { st.slots = out; return true; }
+    return false;
+  }
+  function toHash() {
+    try {
+      var s = st.slots.map(function (x) { return x || 'none'; }).join('-');
+      if (history.replaceState) history.replaceState(null, '', '#' + s); else location.hash = s;
+    } catch (e) {}
+  }
+
+  // ---------- Pomocné ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var NM = st.unit === 'nm';
+  function fmt(n, d) { return Number(n).toLocaleString('cs-CZ', { maximumFractionDigits: d == null ? 1 : d }); }
+  function drive(d) { return d === 0.5 ? '1/2″' : d === 0.75 ? '3/4″' : d === 1 ? '1″' : '1 1/2″'; }
+  function nameOf(m) { return NM ? m.nm : m.ft; }
+  function altName(m) { return NM ? m.ft : m.nm; }
+  function lo(m) { return NM ? m.lo : m.loF; }
+  function hi(m) { return NM ? m.hi : m.hiF; }
+  function famLabel(m) { return m.fam === 'x' ? 'B-RAD X' : m.fam === 'plarad' ? 'Plarad DA3' : 'B-RAD Select'; }
+  function pill(m) { return '<span class="pill ' + (m.fam === 'x' ? 'x' : m.fam === 'plarad' ? 'pl' : 'sel') + '">' + famLabel(m) + '</span>'; }
+  function uT() { return NM ? 'Nm' : 'ft-lb'; }
+  function covers(m) { return st.req == null || (st.req >= lo(m) && st.req <= hi(m)); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ---------- Sloty ----------
+  function renderSlots() {
+    var html = '';
+    for (var i = 0; i < 3; i++) {
+      var cur = st.slots[i];
+      var opts = '<option value="">Vyberte nástroj</option>';
+      ['select', 'x', 'plarad'].forEach(function (fam) {
+        opts += '<optgroup label="' + (fam === 'x' ? 'B-RAD X' : fam === 'plarad' ? 'Plarad DA3' : 'B-RAD Select') + '">';
+        M.filter(function (m) { return m.fam === fam; }).forEach(function (m) {
+          opts += '<option value="' + m.id + '"' + (m.id === cur ? ' selected' : '') + '>' + esc(nameOf(m)) + ' (' + fmt(lo(m), 0) + '–' + fmt(hi(m), 0) + ' ' + uT() + ')</option>';
+        });
+        opts += '</optgroup>';
+      });
+      var m = BYID[cur];
+      var meta = m
+        ? pill(m) + ' <strong>' + fmt(lo(m), 0) + '–' + fmt(hi(m), 0) + ' ' + uT() + '</strong> · čtyřhran ' + drive(m.d) + ' · ' + fmt(NM ? m.kg : m.lb, 1) + (NM ? ' kg' : ' lbs')
+        : 'Zatím nic nevybráno.';
+      html += '<div class="panel slot"><div class="top"><span class="badge" aria-hidden="true">' + (i + 1) + '</span>' +
+        '<select id="slot-' + i + '" aria-label="Nástroj ' + (i + 1) + '" data-i="' + i + '">' + opts + '</select></div>' +
+        '<div class="meta">' + meta + '</div></div>';
+    }
+    $('slots').innerHTML = html;
+    for (var k = 0; k < 3; k++) {
+      $('slot-' + k).addEventListener('change', function (e) {
+        st.slots[+e.target.getAttribute('data-i')] = e.target.value || null;
+        update();
+      });
+    }
+  }
+
+  // ---------- Graf ----------
+  function renderChart() {
+    var min = NM ? 50 : 40, max = NM ? 20000 : 15000;
+    var lg0 = Math.log10(min), lg1 = Math.log10(max);
+    function pos(v) { return Math.max(0, Math.min(100, (Math.log10(v) - lg0) / (lg1 - lg0) * 100)); }
+    var ticks = [100, 300, 1000, 3000, 10000];
+    var ticksHtml = ticks.map(function (t) { return '<span class="tick" style="left:' + pos(t) + '%"></span>'; }).join('');
+    var rows = '';
+    var any = false;
+    st.slots.forEach(function (id, i) {
+      var m = BYID[id];
+      if (!m) return;
+      any = true;
+      var a = pos(lo(m)), b = pos(hi(m));
+      var req = (st.req != null && st.req >= min && st.req <= max) ? '<span class="reqline" style="left:' + pos(st.req) + '%"></span>' : '';
+      rows += '<div class="crow c' + (i + 1) + '"><div class="clabel"><span class="badge" style="margin:0" aria-hidden="true">' + (i + 1) + '</span><div><b>' + esc(nameOf(m)) + '</b><span>' + fmt(lo(m), 0) + '–' + fmt(hi(m), 0) + ' ' + uT() + '</span></div></div>' +
+        '<div class="track">' + ticksHtml + '<span class="bar" style="left:' + a + '%;width:' + (b - a) + '%"></span>' + req + '</div></div>';
+    });
+    if (!any) rows = '<div class="hint">Vyberte alespoň jeden nástroj.</div>';
+    var axis = '<div class="axis" aria-hidden="true">' + ticks.map(function (t) { return '<span style="left:' + pos(t) + '%">' + fmt(t, 0) + '</span>'; }).join('') + '</div>';
+    $('chart').innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + rows + (any ? axis : '') + '</div>';
+    $('chart-note').textContent = 'Logaritmická osa, ' + uT();
+    $('legend').innerHTML = st.req != null ? '<span><i></i>Požadovaný moment ' + fmt(st.req, 0) + ' ' + uT() + '</span>' : '';
+  }
+
+  // ---------- Tabulka srovnání ----------
+  function dims(m) {
+    var lab = m.fam === 'plarad' ? 'L1 × D1 × H1' : 'A × B × C × D';
+    return (NM ? m.mm.map(function (v) { return fmt(v, 0); }).join(' × ') + ' mm' : m.inch.map(function (v) { return fmt(v, 2); }).join(' × ') + ' in') + '<span class="sub">' + lab + '</span>'; }
+  function accText(m) {
+    if (m.fam === 'plarad') return '<span class="muted">neuvedena v datasheetu</span>';
+    if (m.fam === 'select') return '±5 % k cílové hodnotě';
+    return m.acc === 'fs' ? '±3,5 % z plného rozsahu' : '±4 % k cílové hodnotě';
+  }
+  function renderCmp() {
+    var sel = st.slots.map(function (id) { return BYID[id] || null; });
+    var best = {}; // key -> hodnota
+    function bestOf(key, fn, dir) {
+      var vals = sel.filter(Boolean).map(fn);
+      if (vals.length < 2) return;
+      var b = dir === 'max' ? Math.max.apply(null, vals) : Math.min.apply(null, vals);
+      var differ = vals.some(function (v) { return v !== vals[0]; });
+      if (differ) best[key] = b;
+    }
+    bestOf('lo', lo, 'min'); bestOf('hi', hi, 'max');
+    bestOf('rpm', function (m) { return m.rpm; }, 'max');
+    bestOf('wt', function (m) { return NM ? m.kg : m.lb; }, 'min');
+
+    var head = '<thead><tr><th scope="col"></th>';
+    sel.forEach(function (m, i) {
+      head += '<th scope="col">' + (m ? '<span class="mname">' + esc(nameOf(m)) + '</span>' + pill(m) : '<span class="mname" style="color:var(--muted)">Nástroj ' + (i + 1) + '</span>') + '</th>';
+    });
+    head += '</tr></thead>';
+
+    function row(label, fn, bestKey, bestVal) {
+      var r = '<tr><th scope="row">' + label + '</th>';
+      sel.forEach(function (m) {
+        if (!m) { r += '<td class="empty">–</td>'; return; }
+        var v = fn(m);
+        var cls = (bestKey && best[bestKey] != null && bestVal(m) === best[bestKey]) ? ' class="best"' : '';
+        r += '<td' + cls + '>' + v + '</td>';
+      });
+      return r + '</tr>';
+    }
+    function group(t) { return '<tr class="group"><th scope="row" colspan="4">' + t + '</th></tr>'; }
+
+    var b = '<tbody>';
+    b += group('Výkon');
+    b += row('Minimální moment', function (m) { return fmt(lo(m), 0) + ' ' + uT(); }, 'lo', lo);
+    b += row('Maximální moment', function (m) { return fmt(hi(m), 0) + ' ' + uT(); }, 'hi', hi);
+    b += row('Otáčky', function (m) { return fmt(m.rpm, 1) + ' ot/min'; }, 'rpm', function (m) { return m.rpm; });
+    b += row('Přesnost', accText);
+    b += row('Opakovatelnost', function (m) { return m.fam === 'plarad' ? '≤ 4 %<span class="sub">podle aplikace</span>' : '±2 %'; });
+    if (st.req != null) {
+      b += row('Pokrývá ' + fmt(st.req, 0) + ' ' + uT(), function (m) {
+        return covers(m) ? '<span class="yes">Ano</span>' : '<span class="no">Ne</span><span class="sub">' + (st.req < lo(m) ? 'pod minimem' : 'nad maximem') + '</span>';
+      });
+    }
+    b += group('Provedení');
+    b += row('Čtyřhran', function (m) { return drive(m.d) + (m.alt ? '<span class="sub">' + m.alt + '</span>' : ''); });
+    b += row('Hmotnost', function (m) { return fmt(NM ? m.kg : m.lb, 1) + (NM ? ' kg' : ' lbs'); }, 'wt', function (m) { return NM ? m.kg : m.lb; });
+    b += row('Rozměry', dims);
+    b += row('Moment + úhel', function (m) { return m.fam === 'plarad' ? '<span class="muted">neuvedeno</span>' : m.fam === 'x' ? '<span class="yes">Ano</span>' : '<span class="no">Ne</span>'; });
+    b += row('Zadávání momentu', function (m) { return m.fam === 'plarad' ? '<span class="muted">neuvedeno</span>' : m.fam === 'x' ? 'LED displej, 4 tlačítka' : 'Displej, tlačítka (krok 10 ' + uT() + ')'; });
+    b += row('Motor', function (m) { return m.fam === 'plarad' ? '<span class="muted">neuvedeno</span>' : 'Bezuhlíkový'; });
+    b += row('Baterie', function (m) { return m.fam === 'plarad' ? '<span class="muted">neuvedeno</span>' : m.fam === 'x' ? '18 V Li-ion, 2 ks v balení' : 'Li-ion'; });
+    b += group('Objednání');
+    b += row('Objednací číslo', function (m) { return m.fam === 'plarad' ? '<span class="muted">není v datasheetu</span>' : esc(NM ? m.pn : m.pnI); });
+    b += row(NM ? 'Označení v ft-lb' : 'Označení v Nm', function (m) { return m.fam === 'plarad' ? '–' : m.conv ? 'bez imperiálního označení<span class="sub">ft-lb, lbs a in jsou přepočet z metrických hodnot</span>' : esc(altName(m)); });
+    b += '</tbody>';
+    $('cmp').innerHTML = head + b;
+  }
+
+  // ---------- Přehled všech modelů ----------
+  function renderList() {
+    var rows = M.filter(function (m) { return st.fam === 'all' || m.fam === st.fam; });
+    var h = '<thead><tr><th>Řada</th><th>Model</th><th>Čtyřhran</th><th class="num">Moment (' + uT() + ')</th><th class="num">Otáčky</th><th class="num">Hmotnost</th><th class="picks">Do sloupce</th></tr></thead><tbody>';
+    var count = 0;
+    rows.forEach(function (m) {
+      var ok = covers(m);
+      if (ok) count++;
+      var picks = '';
+      for (var i = 0; i < 3; i++) {
+        picks += '<button type="button" class="pick" data-id="' + m.id + '" data-i="' + i + '" aria-pressed="' + (st.slots[i] === m.id) + '" aria-label="' + esc(nameOf(m)) + ' do sloupce ' + (i + 1) + '">' + (i + 1) + '</button>';
+      }
+      h += '<tr' + (ok ? '' : ' class="off"') + '><td>' + pill(m) + '</td><td class="mn">' + esc(nameOf(m)) + '</td><td>' + drive(m.d) + '</td><td class="num">' + fmt(lo(m), 0) + '–' + fmt(hi(m), 0) + '</td><td class="num">' + fmt(m.rpm, 1) + '</td><td class="num">' + fmt(NM ? m.kg : m.lb, 1) + (NM ? ' kg' : ' lbs') + '</td><td class="picks">' + picks + '</td></tr>';
+    });
+    $('list').innerHTML = h + '</tbody>';
+    $('list-note').textContent = st.req != null
+      ? 'Zadaný moment ' + fmt(st.req, 0) + ' ' + uT() + ' pokrývá ' + count + ' z ' + rows.length + ' zobrazených modelů. Nevhodné modely jsou zesvětlené.'
+      : 'Kliknutím na číslo 1, 2 nebo 3 vložíte model do příslušného sloupce srovnání. Opětovným kliknutím ho odeberete.';
+    Array.prototype.forEach.call($('list').querySelectorAll('.pick'), function (btn) {
+      btn.addEventListener('click', function () {
+        var i = +btn.getAttribute('data-i'), id = btn.getAttribute('data-id');
+        st.slots[i] = st.slots[i] === id ? null : id;
+        update();
+      });
+    });
+  }
+
+  // ---------- Ovládání ----------
+  function renderControls() {
+    $('u-nm').setAttribute('aria-pressed', NM);
+    $('u-ft').setAttribute('aria-pressed', !NM);
+    $('req-unit').textContent = '(' + uT() + ')';
+    $('req').placeholder = NM ? 'např. 1200' : 'např. 900';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-fam]'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-fam') === st.fam);
+    });
+  }
+
+  function update() {
+    NM = st.unit === 'nm';
+    renderControls(); renderSlots(); renderChart(); renderCmp(); renderList(); toHash();
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-unit]'), function (b) {
+    b.addEventListener('click', function () {
+      var newUnit = b.getAttribute('data-unit');
+      if (newUnit === st.unit) return;
+      // přepočet zadaného momentu mezi soustavami
+      if (st.req != null) {
+        st.req = newUnit === 'ft' ? Math.round(st.req / 1.3558179) : Math.round(st.req * 1.3558179);
+        $('req').value = st.req;
+      }
+      st.unit = newUnit;
+      try { localStorage.setItem('brad-unit', st.unit); } catch (e) {}
+      update();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-fam]'), function (b) {
+    b.addEventListener('click', function () { st.fam = b.getAttribute('data-fam'); update(); });
+  });
+  $('req').addEventListener('input', function (e) {
+    var v = parseFloat(e.target.value);
+    st.req = isFinite(v) && v > 0 ? v : null;
+    update();
+  });
+  $('reset').addEventListener('click', function () {
+    st.slots = DEFAULT.slice(); st.req = null; st.fam = 'all'; $('req').value = ''; update();
+  });
+  window.addEventListener('hashchange', function () { if (fromHash()) update(); });
+
+  fromHash();
+  update();
+})();
+</script>
+</body>
+</html>
