@@ -174,12 +174,19 @@ table { border-collapse: collapse; width: 100%; }
 .advgrid .n { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; color: var(--accent); grid-row: span 2; padding-top: 2px; }
 .advgrid b { font-weight: 600; }
 .advgrid span.d { color: var(--muted); font-size: 14px; }
-.figs { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .fig { margin: 0; display: flex; flex-direction: column; gap: 8px; }
-.fig img { width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; }
+.figbtn { display: block; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #111; cursor: zoom-in; aspect-ratio: 934 / 1143; width: 100%; }
+.figbtn img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .fig figcaption { font-size: 13px; color: var(--muted); }
-.fig.zoom { grid-column: 1 / -1; align-items: center; }
-.fig.zoom img { max-width: 860px; cursor: zoom-out; }
+.lb { position: fixed; inset: 0; z-index: 50; background: rgba(8, 12, 18, .88); display: none; flex-direction: column; align-items: center; gap: 12px; padding: 16px; }
+.lb.open { display: flex; }
+.lb-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.lb-bar .t { color: #e7ecf2; font-weight: 500; }
+.lb-bar a, .lb-bar button { font: inherit; font-weight: 500; padding: 8px 16px; border-radius: 8px; border: 1px solid #5b6878; background: transparent; color: #e7ecf2; cursor: pointer; text-decoration: none; }
+.lb-bar a.dl { background: #e7ecf2; color: #13202f; border-color: #e7ecf2; }
+.lb-img { flex: 1; min-height: 0; max-width: 100%; display: flex; align-items: center; justify-content: center; }
+.lb-img img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
 @media (max-width: 760px) {
   .advgrid { grid-template-columns: minmax(0, 1fr); }
   .figs { grid-template-columns: minmax(0, 1fr); }
@@ -256,12 +263,16 @@ table { border-collapse: collapse; width: 100%; }
     </ul>
     <div class="figs">
       <figure class="fig">
-        <img src="img/motor.jpg" alt="Dva rozebrané motory vedle sebe: vlevo motor s vinutým statorem a elektronikou, vpravo nový motor v černém žebrovaném pouzdru" loading="lazy">
-        <figcaption>Porovnání motorů: B-RAD Select (vlevo) a nový motor B-RAD X (vpravo). Kliknutím obrázek zvětšíte.</figcaption>
+        <button type="button" class="figbtn" data-full="img/motor-velky.jpg" data-name="B-RAD-X-motory.jpg" data-title="Porovnání motorů B-RAD Select a B-RAD X" aria-label="Zvětšit obrázek: porovnání motorů">
+          <img src="img/motor.jpg" alt="Dva rozebrané motory vedle sebe: vlevo motor s vinutým statorem a elektronikou, vpravo nový motor v černém žebrovaném pouzdru" loading="lazy">
+        </button>
+        <figcaption>Porovnání motorů: B-RAD Select (vlevo) a nový motor B-RAD X (vpravo). Kliknutím zvětšíte a můžete stáhnout.</figcaption>
       </figure>
       <figure class="fig">
-        <img src="img/vyhody.jpg" alt="Přehled výhod B-RAD X oproti B-RAD Select: opakovatelnost, rychlost, účinnost, bezpečnostní prvky, baterie, ergonomie a odolnost" loading="lazy">
-        <figcaption>Výhody B-RAD X oproti B-RAD Select (podklad RAD Torque Systems). Kliknutím obrázek zvětšíte.</figcaption>
+        <button type="button" class="figbtn" data-full="img/vyhody-velky.jpg" data-name="B-RAD-X-vyhody.jpg" data-title="Výhody B-RAD X oproti B-RAD Select" aria-label="Zvětšit obrázek: výhody B-RAD X">
+          <img src="img/vyhody.jpg" alt="Přehled výhod B-RAD X oproti B-RAD Select: opakovatelnost, rychlost, účinnost, bezpečnostní prvky, baterie, ergonomie a odolnost" loading="lazy">
+        </button>
+        <figcaption>Výhody B-RAD X oproti B-RAD Select (podklad RAD Torque Systems). Kliknutím zvětšíte a můžete stáhnout.</figcaption>
       </figure>
     </div>
   </section>
@@ -555,10 +566,38 @@ table { border-collapse: collapse; width: 100%; }
   update();
 })();
 </script>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Náhled obrázku">
+  <div class="lb-bar">
+    <span class="t" id="lb-t"></span>
+    <a class="dl" id="lb-dl" href="#" download>Stáhnout obrázek</a>
+    <a id="lb-open" href="#" target="_blank" rel="noopener">Otevřít v novém okně</a>
+    <button type="button" id="lb-close">Zavřít</button>
+  </div>
+  <div class="lb-img"><img id="lb-img" alt=""></div>
+</div>
 <script>
-Array.prototype.forEach.call(document.querySelectorAll('.fig img'), function (img) {
-  img.addEventListener('click', function () { img.parentNode.classList.toggle('zoom'); });
-});
+(function () {
+  var lb = document.getElementById('lb'), last = null;
+  function open(btn) {
+    last = btn;
+    var src = btn.getAttribute('data-full');
+    document.getElementById('lb-img').src = src;
+    document.getElementById('lb-img').alt = btn.querySelector('img').alt;
+    document.getElementById('lb-t').textContent = btn.getAttribute('data-title');
+    var dl = document.getElementById('lb-dl');
+    dl.href = src; dl.setAttribute('download', btn.getAttribute('data-name'));
+    document.getElementById('lb-open').href = src;
+    lb.classList.add('open');
+    document.getElementById('lb-close').focus();
+  }
+  function close() { lb.classList.remove('open'); if (last) last.focus(); }
+  Array.prototype.forEach.call(document.querySelectorAll('.figbtn'), function (b) {
+    b.addEventListener('click', function () { open(b); });
+  });
+  document.getElementById('lb-close').addEventListener('click', close);
+  lb.addEventListener('click', function (e) { if (e.target === lb || e.target.className === 'lb-img') close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && lb.classList.contains('open')) close(); });
+})();
 </script>
 </body>
 </html>
